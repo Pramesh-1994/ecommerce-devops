@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # ── API GATEWAY ──────────────────────────────
+  api-gateway:
+    build: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+    networks:
+      - ecommerce-net
+
+  # ── USER SERVICE ─────────────────────────────
+  user-service:
+    build: ./services/user-service
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://user-mongo:27017/users
+      - JWT_SECRET=supersecret123
+    depends_on:
+      - user-mongo
+    networks:
+      - ecommerce-net
+
+  user-mongo:
+    image: mongo:7.0
+    volumes:
+      - user-data:/data/db
+    networks:
+      - ecommerce-net
+
+  # ── PRODUCT SERVICE ──────────────────────────
+  product-service:
+    build: ./services/product-service
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://product-mongo:27017/products
+    depends_on:
+      - product-mongo
+    networks:
+      - ecommerce-net
+
+  product-mongo:
+    image: mongo:7.0
+    volumes:
+      - product-data:/data/db
+    networks:
+      - ecommerce-net
+
+  # ── ORDER SERVICE ────────────────────────────
+  order-service:
+    build: ./services/order-service
+    environment:
+      - PORT=3003
+      - MONGO_URI=mongodb://order-mongo:27017/orders
+      - PRODUCT_SERVICE_URL=http://product-service:3002
+    depends_on:
+      - order-mongo
+      - product-service
+    networks:
+      - ecommerce-net
+
+  order-mongo:
+    image: mongo:7.0
+    volumes:
+      - order-data:/data/db
+    networks:
+      - ecommerce-net
+
+  # ── PAYMENT SERVICE ──────────────────────────
+  payment-service:
+    build: ./services/payment-service
+    environment:
+      - PORT=3004
+      - MONGO_URI=mongodb://payment-mongo:27017/payments
+    depends_on:
+      - payment-mongo
+    networks:
+      - ecommerce-net
+
+  payment-mongo:
+    image: mongo:7.0
+    volumes:
+      - payment-data:/data/db
+    networks:
+      - ecommerce-net
+
+volumes:
+  user-data:
+  product-data:
+  order-data:
+  payment-data:
+
+networks:
+  ecommerce-net:
+    driver: bridge
